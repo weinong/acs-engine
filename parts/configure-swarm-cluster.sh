@@ -164,20 +164,20 @@ echo "Installing and configuring docker"
 # simple general command retry function
 retrycmd_if_failure() { for i in 1 2 3 4 5; do $@; [ $? -eq 0  ] && break || sleep 5; done ; }
 
-installDocker()
-{
-  for i in {1..10}; do
-    wget --tries 4 --retry-connrefused --waitretry=15 -qO- https://get.docker.com | sh
-    if [ $? -eq 0 ]
-    then
-      # hostname has been found continue
-      echo "Docker installed successfully"
-      break
-    fi
-    sleep 10
-  done
-}
-time installDocker
+retrycmd_if_failure apt-get update
+
+retrycmd_if_failure apt-get install -y apt-transport-https ca-certificates
+
+retrycmd_if_failure curl --max-time 60 -fsSL https://aptdocker.azureedge.net/gpg | apt-key add -
+
+echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" | sudo tee /etc/apt/sources.list.d/docker.list
+
+echo -e "Package: docker-engine\nPin: version 1.12.*\nPin-Priority: 550\n" > /etc/apt/preferences.d/docker.pref
+
+retrycmd_if_failure apt-get update
+
+retrycmd_if_failure apt-get install -y docker-engine
+
 sudo usermod -aG docker $AZUREUSER
 if isagent ; then
   # Start Docker and listen on :2375 (no auth, but in vnet)
